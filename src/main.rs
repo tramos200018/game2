@@ -7,7 +7,7 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 // seconds per frame
-const DT:f64 = 1.0/60.0;
+const DT: f64 = 1.0 / 60.0;
 
 const DEPTH: usize = 4;
 const WIDTH: usize = 700;
@@ -42,14 +42,14 @@ struct Mobile {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 enum ColliderID {
     Static(usize),
-    Dynamic(usize)
+    Dynamic(usize),
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 struct Contact {
-    a:ColliderID,
-    b:ColliderID,
-    mtv:(i32,i32)
+    a: ColliderID,
+    b: ColliderID,
+    mtv: (i32, i32),
 }
 
 // pixels gives us an rgba8888 framebuffer
@@ -60,7 +60,7 @@ fn clear(fb: &mut [u8], c: Color) {
         px.copy_from_slice(&c);
     }
 }
-fn rect_touching(r1:Rect, r2:Rect) -> bool {
+fn rect_touching(r1: Rect, r2: Rect) -> bool {
     // r1 left is left of r2 right
     r1.x <= r2.x+r2.w as i32 &&
         // r2 left is left of r1 right
@@ -83,11 +83,11 @@ fn rect(fb: &mut [u8], r: Rect, c: Color) {
         }
     }
 }
-fn rect_displacement(r1:Rect, r2:Rect) -> Option<(i32,i32)> {
+fn rect_displacement(r1: Rect, r2: Rect) -> Option<(i32, i32)> {
     // Draw this out on paper to double check, but these quantities
     // will both be positive exactly when the conditions in rect_touching are true.
-    let x_overlap = (r1.x+r1.w as i32).min(r2.x+r2.w as i32) - r1.x.max(r2.x);
-    let y_overlap = (r1.y+r1.h as i32).min(r2.y+r2.h as i32) - r1.y.max(r2.y);
+    let x_overlap = (r1.x + r1.w as i32).min(r2.x + r2.w as i32) - r1.x.max(r2.x);
+    let y_overlap = (r1.y + r1.h as i32).min(r2.y + r2.h as i32) - r1.y.max(r2.y);
     if x_overlap >= 0 && y_overlap >= 0 {
         // This will return the magnitude of overlap in each axis.
         Some((x_overlap, y_overlap))
@@ -97,50 +97,57 @@ fn rect_displacement(r1:Rect, r2:Rect) -> Option<(i32,i32)> {
 }
 
 // Here we will be using push() on into, so it can't be a slice
-fn gather_contacts(statics: &[Wall], dynamics:&[Mobile], into:&mut Vec<Contact>) {
+fn gather_contacts(statics: &[Wall], dynamics: &[Mobile], into: &mut Vec<Contact>) {
     // collide mobiles against mobiles
-    for (ai,a) in dynamics.iter().enumerate() {
-        for (bi,b) in dynamics.iter().enumerate().skip(ai+1) {
-            if let Some(disp) = rect_displacement(a.rect, b.rect){
-                into.push(Contact{a: ColliderID::Dynamic(ai), b: ColliderID::Dynamic(bi), mtv: disp});
+    for (ai, a) in dynamics.iter().enumerate() {
+        for (bi, b) in dynamics.iter().enumerate().skip(ai + 1) {
+            if let Some(disp) = rect_displacement(a.rect, b.rect) {
+                into.push(Contact {
+                    a: ColliderID::Dynamic(ai),
+                    b: ColliderID::Dynamic(bi),
+                    mtv: disp,
+                });
             }
         }
     }
     // collide mobiles against walls
-    for (ai,a) in dynamics.iter().enumerate() {
-        for (bi,b) in statics.iter().enumerate() {
-            if let Some(disp) = rect_displacement(a.rect, b.rect){
-                into.push(Contact{a: ColliderID::Dynamic(ai), b: ColliderID::Static(bi), mtv: disp});
+    for (ai, a) in dynamics.iter().enumerate() {
+        for (bi, b) in statics.iter().enumerate() {
+            if let Some(disp) = rect_displacement(a.rect, b.rect) {
+                into.push(Contact {
+                    a: ColliderID::Dynamic(ai),
+                    b: ColliderID::Static(bi),
+                    mtv: disp,
+                });
+            }
         }
     }
-  }
 }
 
-fn restitute(statics: &[Wall], dynamics:&mut [Mobile], contacts:&mut [Contact]) {
+fn restitute(statics: &[Wall], dynamics: &mut [Mobile], contacts: &mut [Contact]) {
     // handle restitution of dynamics against dynamics and dynamics against statics wrt contacts.
     // You could instead make contacts `Vec<Contact>` if you think you might remove contacts.
     // You could also add an additional parameter, a slice or vec representing how far we've displaced each dynamic, to avoid allocations if you track a vec of how far things have been moved.
     // You might also want to pass in another &mut Vec<Contact> to be filled in with "real" touches that actually happened.
-    contacts.sort_unstable_by_key(|c| -(c.mtv.0*c.mtv.0+c.mtv.1*c.mtv.1));
-    for contact in contacts.iter(){
+    contacts.sort_unstable_by_key(|c| -(c.mtv.0 * c.mtv.0 + c.mtv.1 * c.mtv.1));
+    for contact in contacts.iter() {
         match contact {
-            Contact{
-                a:ColliderID::Dynamic(f), 
-                b:ColliderID::Static(g), 
-                mtv} =>
-            {
+            Contact {
+                a: ColliderID::Dynamic(f),
+                b: ColliderID::Static(g),
+                mtv,
+            } => {
                 let f: usize = f.to_owned();
                 let g: usize = g.to_owned();
-               
-                if rect_touching(dynamics[f].rect, statics[g].rect){
-                    dynamics[f].rect.x = 170;
-                    dynamics[f].rect.y = 510;
+
+                if rect_touching(dynamics[f].rect, statics[g].rect) {
+                    dynamics[f].rect.x = 120;
+                    dynamics[f].rect.y = 170;
                 }
             }
             _ => {}
-        
+        }
     }
-}
     // Keep going!  Note that you can assume every contact has a dynamic object in .a.
     // You might decide to tweak the interface of this function to separately take dynamic-static and dynamic-dynamic contacts, to avoid a branch inside of the response calculation.
     // Or, you might decide to calculate signed mtvs taking direction into account instead of the unsigned displacements from rect_displacement up above.  Or calculate one MTV per involved entity, then apply displacements to both objects during restitution (sorting by the max or the sum of their magnitudes)
@@ -166,15 +173,15 @@ fn main() {
     };
     let player = Mobile {
         rect: Rect {
-            x: 170,
-            y: 510,
+            x: 120,
+            y: 170,
             w: 16,
             h: 16,
         },
         vx: 0,
         vy: 0,
     };
-    let walls = [
+    let walls3 = [
         //top wall
         Wall {
             rect: Rect {
@@ -221,8 +228,119 @@ fn main() {
             },
         },
     ];
+    let walls = [
+        //bottom wall
+        Wall {
+            rect: Rect {
+                x: 0,
+                y: HEIGHT as i32 - 50,
+                w: WIDTH as u16,
+                h: 50,
+            },
+        },
+        //right wall
+        Wall {
+            rect: Rect {
+                x: WIDTH as i32 - 150,
+                y: 0,
+                w: 150,
+                h: HEIGHT as u16,
+            },
+        },
+        //left wall
+        Wall {
+            rect: Rect {
+                x: 0,
+                y: 0,
+                w: 100,
+                h: HEIGHT as u16,
+            },
+        },
+        //top wall
+        Wall {
+            rect: Rect {
+                x: 0,
+                y: 0,
+                w: WIDTH as u16,
+                h: 50,
+            },
+        },
+        //w1
+        Wall {
+            rect: Rect {
+                x: 100,
+                y: HEIGHT as i32 - 150,
+                w: WIDTH as u16 / 3 + 150,
+                h: 50,
+            },
+        },
+        //w2
+        Wall {
+            rect: Rect {
+                x: 100 + 50,
+                y: HEIGHT as i32 - 350,
+                w: WIDTH as u16 / 3 + 200,
+                h: 150,
+            },
+        },
+        //w3
+        Wall {
+            rect: Rect {
+                x: 100,
+                y: 50,
+                w: WIDTH as u16 / 3,
+                h: 100,
+            },
+        },
+        //w4
+        Wall {
+            rect: Rect {
+                x: 100 + WIDTH as i32 / 3,
+                y: HEIGHT as i32 - 375,
+                w: WIDTH as u16 / 3 + 100,
+                h: 25,
+            },
+        },
+        //w5
+        Wall {
+            rect: Rect {
+                x: WIDTH as i32 / 3 * 2 - 50,
+                y: 50,
+                w: WIDTH as u16 / 3 + 50,
+                h: 150,
+            },
+        },
+        //w6
+        Wall {
+            rect: Rect {
+                x: 100 + WIDTH as i32 / 3,
+                y: 125,
+                w: 50,
+                h: 25,
+            },
+        },
+        //w7
+        Wall {
+            rect: Rect {
+                x: 130 + WIDTH as i32 / 3,
+                y: 93,
+                w: 60,
+                h: 3,
+            },
+        },
+        //w8
+        Wall {
+            rect: Rect {
+                x: 100 + WIDTH as i32 / 3,
+                y: 50,
+                w: 40,
+                h: 15,
+            },
+        },
+        
+    ];
     // How many frames have we simulated?
-    let mut frame_count:usize = 0;
+    let mut frame_count: usize = 0;
     // How many unsimulated frames have we saved up?
     let mut available_time = 0.0;
     // Track beginning of play
@@ -271,24 +389,18 @@ fn main() {
             available_time -= DT;
 
             // Player control goes here; determine player acceleration
-            if input.key_pressed(VirtualKeyCode::Right){
+            if input.key_pressed(VirtualKeyCode::Right) {
                 player.rect.x += 1;
-
             }
-            if input.key_pressed(VirtualKeyCode::Left){
+            if input.key_pressed(VirtualKeyCode::Left) {
                 player.rect.x -= 1;
-
-                
-            }if input.key_pressed(VirtualKeyCode::Up){
-                player.rect.y -= 1;
-
-                
-            }if input.key_pressed(VirtualKeyCode::Down){
-                player.rect.y += 1;
-
-                
             }
-
+            if input.key_pressed(VirtualKeyCode::Up) {
+                player.rect.y -= 1;
+            }
+            if input.key_pressed(VirtualKeyCode::Down) {
+                player.rect.y += 1;
+            }
 
             // Determine player velocity
 
@@ -302,10 +414,10 @@ fn main() {
             restitute(&walls, &mut mobiles, &mut contacts);
 
             // Update game rules: What happens when the player touches things?
-            
+
             // Increment the frame counter
             frame_count += 1;
-        };
+        }
         // Request redraw
         window.request_redraw();
         // When did the last frame end?
