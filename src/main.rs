@@ -228,6 +228,72 @@ fn main() {
             },
         },
     ];
+    let walls2 = [
+        //top wall
+        Wall {
+            rect: Rect {
+                x: 0,
+                y: 0,
+                w: WIDTH as u16,
+                h: 0,
+            },
+        },
+        //left wall
+        Wall {
+            rect: Rect {
+                x: 0,
+                y: 0,
+                w: 90,
+                h: HEIGHT as u16,
+            },
+        },
+        //right wall
+        Wall {
+            rect: Rect {
+                x: WIDTH as i32 - 26,
+                y: 0,
+                w: 90,
+                h: HEIGHT as u16,
+            },
+        },
+        //bottom wall 
+        Wall {
+            rect: Rect {
+                x: 0,
+                y: HEIGHT as i32 - 30,
+                w: WIDTH as u16,
+                h: 70,
+            },
+        },
+        //first quarter wall
+        Wall {
+            rect: Rect {
+                x: 220,
+                y: 90,
+                w: WIDTH as u16,
+                h: 70,
+            },
+        },
+        //second quarter wall
+        Wall {
+            rect: Rect {
+                x: 0,
+                y: 240,
+                w: WIDTH as u16 - 90,
+                h: 70,
+            },
+        },
+        //third quarter wall
+        Wall {
+            rect: Rect {
+                x: 220,
+                y: 390,
+                w: WIDTH as u16,
+                h: 70,
+            },
+        },
+        
+    ];
     let walls3 = [
         //bottom wall
         Wall {
@@ -355,7 +421,7 @@ fn main() {
             let fb = pixels.get_frame();
             clear(fb, CLEAR_COL);
             // Draw the walls
-            for w in walls.iter() {
+            for w in walls2.iter() {
                 rect(fb, w.rect, WALL_COL);
             }
             // Draw the player
