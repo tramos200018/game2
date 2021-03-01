@@ -181,7 +181,7 @@ fn main() {
         vx: 0,
         vy: 0,
     };
-    let walls3 = [
+    let walls = [
         //top wall
         Wall {
             rect: Rect {
@@ -228,7 +228,7 @@ fn main() {
             },
         },
     ];
-    let walls = [
+    let walls3 = [
         //bottom wall
         Wall {
             rect: Rect {
