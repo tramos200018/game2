@@ -440,6 +440,14 @@ fn main() {
             // Draw the next square
             rect(fb, nextSquare, NEXT_COL);
             //next level
+            if(rect_touching(mobiles[0].rect, nextSquare)){
+                clear(fb, CLEAR_COL);
+                for w in walls2.iter() {
+                    rect(fb, w.rect, WALL_COL);
+                }
+                // Draw the player
+                rect(fb, mobiles[0].rect, PLAYER_COL);
+            }
             
             // Flip buffers
             if pixels.render().is_err() {
