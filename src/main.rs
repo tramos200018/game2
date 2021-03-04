@@ -20,6 +20,7 @@ type Color = [u8; DEPTH];
 const CLEAR_COL: Color = [32, 32, 64, 255];
 const WALL_COL: Color = [200, 200, 200, 255];
 const PLAYER_COL: Color = [255, 128, 128, 255];
+const NEXT_COL: Color = [255, 0 , 0, 255];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Rect {
@@ -141,7 +142,7 @@ fn restitute(statics: &[Wall], dynamics: &mut [Mobile], contacts: &mut [Contact]
                 let g: usize = g.to_owned();
 
                 if rect_touching(dynamics[f].rect, statics[g].rect) {
-                    dynamics[f].rect.x = 120;
+                    dynamics[f].rect.x = 170;
                     dynamics[f].rect.y = 170;
                 }
             }
@@ -173,13 +174,20 @@ fn main() {
     };
     let player = Mobile {
         rect: Rect {
-            x: 120,
+            x: 170,
             y: 170,
             w: 16,
             h: 16,
         },
         vx: 0,
         vy: 0,
+    };
+    let nextSquare = Rect {
+        x: WIDTH as i32 / 2 + 50,
+        y: 100,
+        w: 68,
+        h: 175,
+        
     };
     let walls = [
         //top wall
@@ -415,22 +423,31 @@ fn main() {
     let mut mobiles = [player];
     // Track end of the last frame
     let mut since = Instant::now();
+
+    //next level
+    
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
             let fb = pixels.get_frame();
             clear(fb, CLEAR_COL);
             // Draw the walls
-            for w in walls2.iter() {
+            for w in walls.iter() {
                 rect(fb, w.rect, WALL_COL);
             }
             // Draw the player
             rect(fb, mobiles[0].rect, PLAYER_COL);
+            // Draw the next square
+            rect(fb, nextSquare, NEXT_COL);
+            //next level
+            
             // Flip buffers
             if pixels.render().is_err() {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
+            
+            
 
             // Rendering has used up some time.
             // The renderer "produces" time...
@@ -456,16 +473,16 @@ fn main() {
 
             // Player control goes here; determine player acceleration
             if input.key_pressed(VirtualKeyCode::Right) {
-                player.rect.x += 1;
+                player.rect.x += 4;
             }
             if input.key_pressed(VirtualKeyCode::Left) {
-                player.rect.x -= 1;
+                player.rect.x -= 4;
             }
             if input.key_pressed(VirtualKeyCode::Up) {
-                player.rect.y -= 1;
+                player.rect.y -= 4;
             }
             if input.key_pressed(VirtualKeyCode::Down) {
-                player.rect.y += 1;
+                player.rect.y += 4;
             }
 
             // Determine player velocity
@@ -489,4 +506,6 @@ fn main() {
         // When did the last frame end?
         since = Instant::now();
     });
+
+    
 }
