@@ -23,24 +23,24 @@ const PLAYER_COL: Color = [255, 128, 128, 255];
 const NEXT_COL: Color = [255, 0 , 0, 255];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-struct Rect {
-    x: i32,
-    y: i32,
-    w: u16,
-    h: u16,
+pub struct Rect {
+    pub x: i32,
+    pub y: i32,
+    pub w: u16,
+    pub h: u16,
 }
 struct Level{
     
 }
 
-struct Wall {
-    rect: Rect,
+pub struct Wall {
+    pub rect: Rect,
 }
 
-struct Mobile {
-    rect: Rect,
-    vx: i32,
-    vy: i32,
+pub struct Mobile {
+    pub rect: Rect,
+    pub vx: i32,
+    pub vy: i32,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -57,14 +57,14 @@ struct Contact {
 }
 
 // pixels gives us an rgba8888 framebuffer
-fn clear(fb: &mut [u8], c: Color) {
+pub fn clear(fb: &mut [u8], c: Color) {
     // Four bytes per pixel; chunks_exact_mut gives an iterator over 4-element slices.
     // So this way we can use copy_from_slice to copy our color slice into px very quickly.
     for px in fb.chunks_exact_mut(4) {
         px.copy_from_slice(&c);
     }
 }
-fn rect_touching(r1: Rect, r2: Rect) -> bool {
+pub fn rect_touching(r1: Rect, r2: Rect) -> bool {
     // r1 left is left of r2 right
     r1.x <= r2.x+r2.w as i32 &&
         // r2 left is left of r1 right
@@ -75,7 +75,7 @@ fn rect_touching(r1: Rect, r2: Rect) -> bool {
         r2.y <= r1.y+r1.h as i32
 }
 #[allow(dead_code)]
-fn rect(fb: &mut [u8], r: Rect, c: Color) {
+pub fn rect(fb: &mut [u8], r: Rect, c: Color) {
     assert!(r.x < WIDTH as i32);
     assert!(r.y < HEIGHT as i32);
     // NOTE, very fragile! will break for out of bounds rects!  See next week for the fix.
@@ -192,6 +192,7 @@ fn main() {
         h: 175,
         
     };
+    
     let walls = [
         //top wall
         Wall {
@@ -414,7 +415,6 @@ fn main() {
                 h: 15,
             },
         },
-        
     ];
     // How many frames have we simulated?
     let mut frame_count: usize = 0;
