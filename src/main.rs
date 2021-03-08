@@ -289,57 +289,6 @@ fn main() {
         },
         
     ];
-    /* 
-    let tex = Rc::new(Texture::with_file(Path::new("pixil-frame-0.png")));
-    let tileset = Rc::new(Tileset::new(
-        vec![Tile { solid: true }, Tile { solid: true }],
-        &tex,
-    ));
-    let mut maps = vec![];
-    let map = Tilemap::new(
-        Vec2i(0, 0),
-        (8, 8),
-        &tileset,
-        vec![
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0,
-            0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-            1, 1, 1, 1, 1, 1,
-        ],
-    );
-    let map2 = Tilemap::new(
-        Vec2i(WIDTH as i32 + 1, 0),
-        (8, 8),
-        &tileset,
-        vec![
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0,
-            0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-            1, 1, 1, 1, 1, 1,
-        ],
-    );
-    let map3 = Tilemap::new(
-        Vec2i(WIDTH as i32 * 2, 0),
-        (8, 8),
-        &tileset,
-        vec![
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-            0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-            1, 1, 1, 1, 1, 1,
-        ],
-    );
-    let map4 = Tilemap::new(
-        Vec2i(WIDTH as i32 * 3, 0),
-        (8, 8),
-        &tileset,
-        vec![
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1,
-            1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-            1, 1, 1, 1, 1, 1,
-        ],
-    );
-    maps.push(map);
-    maps.push(map2);
-    maps.push(map3);
-    maps.push(map4);*/
 
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
@@ -358,33 +307,7 @@ fn main() {
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture).unwrap()
     };
-    /* 
-    let tex = Rc::new(Texture::with_file(Path::new("king.png")));
-    let frame1 = Rect {
-        x: 0,
-        y: 16,
-        w: 16,
-        h: 16,
-    };
-    let frame2 = Rect {
-        x: 16,
-        y: 16,
-        w: 16,
-        h: 16,
-    };
-    let mut anim = Rc::new(Animation::new(vec![frame1, frame2]));
-    let mut scroll = Vec2i(0, 0);*/
-    /*let player = Mobile {
-        rect: collision::Rect {
-            x: 170,
-            y: 170,
-            w: 16,
-            h: 16,
-        },
-        vx: 0,
-        vy: 0,
-    };*/
-    //let game_walls: Vec<Wall> = [walls1, walls2, walls3];
+   
     let level =  Level{
         gamemap: walls1,
         exit: collision::Rect {
@@ -407,10 +330,10 @@ fn main() {
         gamemap: walls3,
         //need to correct exit
         exit: collision::Rect {
-            x: WIDTH as i32 - 50,
-            y: 460,
-            w: 30,
-            h: 60,},
+            x: 373,
+            y: 50,
+            w: 43,
+            h: 10,},
         position: Vec2i(110, 463)
     };
 
@@ -421,13 +344,13 @@ fn main() {
             rect: collision::Rect {
                 x: 170,
                 y: 500,
-                w: 16,
-                h: 16,
+                w: 11,
+                h: 11,
             },
             vx: 0,
             vy: 0,
         },
-        levels: vec![level, level2, level3],
+        levels: vec![level3, level, level2],
         current_level: 0,
     };
     // How many frames have we simulated?
@@ -493,18 +416,7 @@ fn main() {
         since = Instant::now();
     });
 }
-/* 
-fn draw_game(state: &mut GameState, fb: &mut u8) {
-    // Call screen's drawing methods to render the game state
-    collision::clear(fb, CLEAR_COL);
-    
 
-    for w in state.levels.gamemap[0].iter() {
-        collision::rect(fb, w.rect, WALL_COL);
-    }
-
-    
-}*/
 
 fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
     let mut level_index: usize = state.current_level;
