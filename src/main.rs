@@ -62,7 +62,7 @@ struct GameState {
     player: Mobile,
     //animations: Vec<Animation>,
     textures: Vec<Rc<Texture>>,
-    //sprites: Vec<Sprite>,
+    sprites: Vec<Sprite>,
     //maps: Vec<Tilemap>,
     //scroll: Vec2i,
     levels: Vec<Level>,
@@ -83,6 +83,9 @@ fn main() {
 
     let startscreen_tex = Rc::new(Texture::with_file(Path::new("start.png")));
     let endscreen_tex = Rc::new(Texture::with_file(Path::new("end.jpg")));
+
+    let frame1 = Rect{x: 0, y: 0, w: 16, h: 16};
+    let mut anim = Rc::new(Animation::new(vec![frame1]));
 
     let walls1: Vec<Wall> = vec![
         //top wall
@@ -370,6 +373,13 @@ fn main() {
             vy: 0,
         },
         textures: vec![Rc::clone(&startscreen_tex), Rc::clone(&endscreen_tex)],
+        sprites: vec![Sprite::new(
+            &startscreen_tex,
+            &anim,
+            frame1,
+            0,
+            Vec2i(90, 200),
+        )],
         levels: vec![level, level2, level3],
         current_level: 0,
         // Current mode
@@ -383,7 +393,7 @@ fn main() {
     let start = Instant::now();
     // Track end of the last frame
     let mut since = Instant::now();
-    println!("Press Space to start!");
+   
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
@@ -447,7 +457,8 @@ fn main() {
 
 fn start_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, screen: &mut Screen) {
     screen.clear(Rgba(80, 80, 80, 255));
-
+    
+    
     match state.mode {
         Mode::TitleScreen => screen.bitblt(
             &state.textures[1],
@@ -486,8 +497,8 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, sc
                     Rect {
                         x: 0,
                         y: 0,
-                        w: 50,
-                        h: 50,
+                        w: 200,
+                        h: 200,
                     },
                     Vec2i(0, 0),
                 )
