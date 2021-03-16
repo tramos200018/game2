@@ -60,7 +60,7 @@ struct GameState {
     // What data do we need for this game?  Wall positions?
     // Colliders?  Sprites and stuff?
     player: Mobile,
-    //animations: Vec<Animation>,
+    animations: Vec<Animation>,
     textures: Vec<Rc<Texture>>,
     sprites: Vec<Sprite>,
     //maps: Vec<Tilemap>,
@@ -81,11 +81,13 @@ fn main() {
 
     //let enemy_tex = Rc::clone(&player_tex);
 
-    let startscreen_tex = Rc::new(Texture::with_file(Path::new("start.png")));
-    let endscreen_tex = Rc::new(Texture::with_file(Path::new("end.jpg")));
+    //let startscreen_tex = Rc::new(Texture::with_file(Path::new("start.png")));
+    //let endscreen_tex = Rc::new(Texture::with_file(Path::new("end.jpg")));
 
-    let frame1 = Rect{x: 0, y: 0, w: 16, h: 16};
-    let mut anim = Rc::new(Animation::new(vec![frame1]));
+    let tex = Rc::new(Texture::with_file(Path::new("king.png")));
+    let frame1 = Rect{x: 0, y: 16, w: 16, h: 16};
+    let frame2 = Rect{x: 16, y:16, w:16, h:16};
+    let mut anim = Rc::new(Animation::new(vec![frame1, frame2]));
 
     let walls1: Vec<Wall> = vec![
         //top wall
@@ -372,14 +374,15 @@ fn main() {
             vx: 0,
             vy: 0,
         },
-        textures: vec![Rc::clone(&startscreen_tex), Rc::clone(&endscreen_tex)],
+        animations: vec![],
         sprites: vec![Sprite::new(
-            &startscreen_tex,
+            &tex,
             &anim,
-            frame1,
+            frame2,
             0,
-            Vec2i(90, 200),
+            Vec2i(170, 500),
         )],
+        textures: vec![tex],
         levels: vec![level, level2, level3],
         current_level: 0,
         // Current mode
@@ -394,11 +397,18 @@ fn main() {
     // Track end of the last frame
     let mut since = Instant::now();
    
+    
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
-            let fb = pixels.get_frame();
-            collision::clear(fb, CLEAR_COL);
+            let mut fb = pixels.get_frame();
+            let mut screen = Screen::wrap(fb, WIDTH, HEIGHT, DEPTH, Vec2i(0, 0));
+            
+            
+           
+            
+            draw_game(&state, &mut screen);
+            
 
             //Draw the walls
             for w in state.levels[state.current_level].gamemap.iter() {
@@ -407,7 +417,10 @@ fn main() {
             //draw the exit
             collision::rect(fb, state.levels[state.current_level].exit, NEXT_COL);
             // Draw the player
-            collision::rect(fb, state.player.rect, PLAYER_COL);
+            //collision::rect(fb, state.player.rect, PLAYER_COL);
+            
+
+            
             
             //draw_game(&mut state, fb);
 
@@ -437,13 +450,12 @@ fn main() {
         }
         // And the simulation "consumes" it
         while available_time >= DT {
-            let mut screen = Screen::wrap(pixels.get_frame(), WIDTH, HEIGHT, DEPTH, Vec2i(0, 0));
 
 
             // Eat up one frame worth of time
             available_time -= DT;
 
-            update_game(&mut state, &input, frame_count, &mut screen);
+            update_game(&mut state, &input, frame_count);
 
             // Increment the frame counter
             frame_count += 1;
@@ -455,6 +467,16 @@ fn main() {
     });
 }
 
+fn draw_game(state: &GameState, screen: &mut Screen) {
+    // Call screen's drawing methods to render the game state
+    screen.clear(Rgba(80, 80, 80, 255));
+    
+    
+    for s in state.sprites.iter() {
+        screen.draw_sprite(s);
+    }
+}
+/*
 fn start_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, screen: &mut Screen) {
     screen.clear(Rgba(80, 80, 80, 255));
     
@@ -472,7 +494,7 @@ fn start_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, scr
         ),
         Mode::GamePlay => {}
         Mode::EndGame => screen.bitblt(
-            &state.textures[1],
+            &state.textures[2],
             Rect {
                 x: 0,
                 y: 0,
@@ -483,40 +505,31 @@ fn start_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, scr
         ),
     }
 }
-
+*/
 //maybe add start game for menus
-fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, screen: &mut Screen) {
+fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
     {
         match state.mode {
             Mode::TitleScreen => {
                 if input.key_held(VirtualKeyCode::Space) {
                     state.mode = Mode::GamePlay
                 }
-                screen.bitblt(
-                    &state.textures[1],
-                    Rect {
-                        x: 0,
-                        y: 0,
-                        w: 200,
-                        h: 200,
-                    },
-                    Vec2i(0, 0),
-                )
+                
             }
             Mode::GamePlay => {
                 let mut level_index: usize = state.current_level;
                 // Player control goes here
                 if input.key_held(VirtualKeyCode::Right) {
-                    state.player.rect.x += 1;
+                    state.sprites[0].position.0 += 1;
                 }
                 if input.key_held(VirtualKeyCode::Left) {
-                    state.player.rect.x -= 1;
+                    state.sprites[0].position.0 -= 1;
                 }
                 if input.key_held(VirtualKeyCode::Up) {
-                    state.player.rect.y -= 1;
+                    state.sprites[0].position.1 += 1;
                 }
                 if input.key_held(VirtualKeyCode::Down) {
-                    state.player.rect.y += 1;
+                    state.sprites[0].position.1 -= 1;
                 }
                 // Update player position
 
@@ -541,22 +554,14 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, sc
                     state.player.rect.x = state.levels[state.current_level].position.0;
                     state.player.rect.y = state.levels[state.current_level].position.1;
                 }
+                // Update player position
+                state.sprites[0].update_anim();
             }
             Mode::EndGame => {
-                if input.key_held(VirtualKeyCode::P) {
-                    screen.bitblt(
-                        &state.textures[1],
-                        Rect {
-                            x: 0,
-                            y: 0,
-                            w: 100,
-                            h: 100,
-                        },
-                        Vec2i(0, 0),
-                    )
-                }
+                
             }
         }
+        
 
         // Handle collisions: Apply restitution impulses.
 
