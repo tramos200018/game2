@@ -405,7 +405,8 @@ fn main() {
             let mut screen = Screen::wrap(fb, WIDTH, HEIGHT, DEPTH, Vec2i(0, 0));
             
             
-           
+            
+            
             
             draw_game(&state, &mut screen);
             
@@ -416,8 +417,6 @@ fn main() {
             }
             //draw the exit
             collision::rect(fb, state.levels[state.current_level].exit, NEXT_COL);
-            // Draw the player
-            //collision::rect(fb, state.player.rect, PLAYER_COL);
             
 
             
