@@ -9,6 +9,8 @@ use winit::window::WindowBuilder;
 use winit::{dpi::LogicalSize, event};
 use winit_input_helper::WinitInputHelper;
 
+
+
 // Whoa what's this?
 // Mod without brackets looks for a nearby file.
 mod screen;
@@ -32,6 +34,9 @@ use sprite::*;
 // And we'll put our general purpose types like color and geometry here:
 mod types;
 use types::*;
+
+mod resources;
+use resources::*;
 
 mod collision;
 use collision::{rect_touching, Mobile, Wall};
@@ -60,7 +65,7 @@ struct GameState {
     // What data do we need for this game?  Wall positions?
     // Colliders?  Sprites and stuff?
     player: Mobile,
-    animations: Vec<Animation>,
+    //animations: Vec<Animation>,
     textures: Vec<Rc<Texture>>,
     sprites: Vec<Sprite>,
     //maps: Vec<Tilemap>,
@@ -72,22 +77,22 @@ struct GameState {
 // seconds per frame
 const DT: f64 = 1.0 / 60.0;
 
-const WIDTH: usize = 700;
-const HEIGHT: usize = 550;
+const WIDTH: usize = 269; //700
+const HEIGHT: usize = 187; //550
 const DEPTH: usize = 4;
 
 fn main() {
     //let player_tex = Rc::new(Texture::with_file(Path::new("king.png")));
 
     //let enemy_tex = Rc::clone(&player_tex);
+    let mut rsrc = Resources::new();
+    let startscreen_tex = rsrc.load_texture(Path::new("start.png"));
 
     //let startscreen_tex = Rc::new(Texture::with_file(Path::new("start.png")));
-    //let endscreen_tex = Rc::new(Texture::with_file(Path::new("end.jpg")));
+    let endscreen_tex = rsrc.load_texture(Path::new("end.jpg"));
 
-    let tex = Rc::new(Texture::with_file(Path::new("king.png")));
-    let frame1 = Rect{x: 0, y: 16, w: 16, h: 16};
-    let frame2 = Rect{x: 16, y:16, w:16, h:16};
-    let mut anim = Rc::new(Animation::new(vec![frame1, frame2]));
+    let frame1 = Rect{x: 0, y: 0, w: 16, h: 16};
+    let mut anim = Rc::new(Animation::new(vec![frame1]));
 
     let walls1: Vec<Wall> = vec![
         //top wall
@@ -374,19 +379,19 @@ fn main() {
             vx: 0,
             vy: 0,
         },
-        animations: vec![],
+        textures: vec![Rc::clone(&startscreen_tex) , Rc::clone(&endscreen_tex)],
         sprites: vec![Sprite::new(
-            &tex,
+            &startscreen_tex,
             &anim,
-            frame2,
+            frame1,
             0,
-            Vec2i(170, 500),
+            Vec2i(90, 200),
         )],
-        textures: vec![tex],
         levels: vec![level, level2, level3],
         current_level: 0,
         // Current mode
         mode: Mode::TitleScreen,
+        
     };
     // How many frames have we simulated?
     let mut frame_count: usize = 0;
@@ -396,30 +401,28 @@ fn main() {
     let start = Instant::now();
     // Track end of the last frame
     let mut since = Instant::now();
-   
-    
+    let mut screen = Screen::wrap(pixels.get_frame(), WIDTH, HEIGHT, DEPTH, Vec2i(0, 0));
+    println!("Entered");
+    start_game(&mut state, &input, frame_count, &mut screen, &rsrc);
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
-            let mut fb = pixels.get_frame();
-            let mut screen = Screen::wrap(fb, WIDTH, HEIGHT, DEPTH, Vec2i(0, 0));
+            let fb = pixels.get_frame();
             
             
             
-            
-            
-            draw_game(&state, &mut screen);
             
 
+            //collision::clear(fb, CLEAR_COL);
             //Draw the walls
+            /* 
             for w in state.levels[state.current_level].gamemap.iter() {
                 collision::rect(fb, w.rect, WALL_COL);
             }
             //draw the exit
             collision::rect(fb, state.levels[state.current_level].exit, NEXT_COL);
-            
-
-            
+            // Draw the player
+            collision::rect(fb, state.player.rect, PLAYER_COL);
             
             //draw_game(&mut state, fb);
 
@@ -431,7 +434,7 @@ fn main() {
 
             // Rendering has used up some time.
             // The renderer "produces" time...
-            available_time += since.elapsed().as_secs_f64();
+            available_time += since.elapsed().as_secs_f64();*/
         }
         
 
@@ -449,12 +452,13 @@ fn main() {
         }
         // And the simulation "consumes" it
         while available_time >= DT {
+            let mut screen = Screen::wrap(pixels.get_frame(), WIDTH, HEIGHT, DEPTH, Vec2i(0, 0));
 
 
             // Eat up one frame worth of time
             available_time -= DT;
 
-            update_game(&mut state, &input, frame_count);
+            update_game(&mut state, &input, frame_count, &mut screen, &rsrc);
 
             // Increment the frame counter
             frame_count += 1;
@@ -464,36 +468,31 @@ fn main() {
         // When did the last frame end?
         since = Instant::now();
     });
+    //engine2d::run(WIDTH, HEIGHT, window_builder, rsrc, levels, state, draw_game, update_game);
 }
 
-fn draw_game(state: &GameState, screen: &mut Screen) {
-    // Call screen's drawing methods to render the game state
+fn start_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, screen: &mut Screen, resources: &Resources) {
     screen.clear(Rgba(80, 80, 80, 255));
-    
-    
-    for s in state.sprites.iter() {
-        screen.draw_sprite(s);
-    }
-}
-/*
-fn start_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, screen: &mut Screen) {
-    screen.clear(Rgba(80, 80, 80, 255));
+
     
     
     match state.mode {
-        Mode::TitleScreen => screen.bitblt(
-            &state.textures[1],
+        Mode::TitleScreen => {
+            println!("Running title screen");
+            screen.bitblt(
+            &state.textures[0],
             Rect {
                 x: 0,
                 y: 0,
-                w: 200,
-                h: 200,
+                w: 269,
+                h: 187,
             },
             Vec2i(0, 0),
-        ),
+        )
+        },
         Mode::GamePlay => {}
         Mode::EndGame => screen.bitblt(
-            &state.textures[2],
+            &state.textures[0],
             Rect {
                 x: 0,
                 y: 0,
@@ -504,9 +503,9 @@ fn start_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, scr
         ),
     }
 }
-*/
+
 //maybe add start game for menus
-fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
+fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize, screen: &mut Screen, resources: &Resources) {
     {
         match state.mode {
             Mode::TitleScreen => {
@@ -519,16 +518,16 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
                 let mut level_index: usize = state.current_level;
                 // Player control goes here
                 if input.key_held(VirtualKeyCode::Right) {
-                    state.sprites[0].position.0 += 1;
+                    state.player.rect.x += 1;
                 }
                 if input.key_held(VirtualKeyCode::Left) {
-                    state.sprites[0].position.0 -= 1;
+                    state.player.rect.x -= 1;
                 }
                 if input.key_held(VirtualKeyCode::Up) {
-                    state.sprites[0].position.1 += 1;
+                    state.player.rect.y -= 1;
                 }
                 if input.key_held(VirtualKeyCode::Down) {
-                    state.sprites[0].position.1 -= 1;
+                    state.player.rect.y += 1;
                 }
                 // Update player position
 
@@ -553,14 +552,22 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
                     state.player.rect.x = state.levels[state.current_level].position.0;
                     state.player.rect.y = state.levels[state.current_level].position.1;
                 }
-                // Update player position
-                state.sprites[0].update_anim();
             }
             Mode::EndGame => {
-                
+                if input.key_held(VirtualKeyCode::P) {
+                    screen.bitblt(
+                        &state.textures[1],
+                        Rect {
+                            x: 0,
+                            y: 0,
+                            w: 100,
+                            h: 100,
+                        },
+                        Vec2i(0, 0),
+                    )
+                }
             }
         }
-        
 
         // Handle collisions: Apply restitution impulses.
 
