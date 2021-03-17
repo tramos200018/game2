@@ -7,13 +7,16 @@ use winit::{dpi::LogicalSize, event};
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
-use winit_input_helper::WinitInputHelper;
+use winit_input_helper::WinitInputHelper; 
 
 // Whoa what's this?
 // Mod without brackets looks for a nearby file.
 mod screen;
 // Then we can use as usual.  The screen module will have drawing utilities.
 use screen::Screen;
+
+mod resources;
+use resources::Resources;
 
 mod tiles;
 use tiles::{Tile, Tilemap, Tileset};
@@ -44,6 +47,7 @@ const NEXT_COL: Color = [255, 0 , 0, 255];
 
 struct Level {gamemap: Vec<Wall>, exit: collision::Rect, position: Vec2i}
 
+
 // Now this main module is just for the run-loop and rules processing.
 struct GameState {
     // What data do we need for this game?  Wall positions?
@@ -56,6 +60,8 @@ struct GameState {
     //scroll: Vec2i,
     levels: Vec<Level>,
     current_level: usize,
+    mode: Mode
+
 }
 // seconds per frame
 const DT: f64 = 1.0 / 60.0;
@@ -64,7 +70,18 @@ const WIDTH: usize = 700;
 const HEIGHT: usize = 550;
 const DEPTH: usize = 4;
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Mode {
+    TitleScreen,
+    GamePlay,
+    EndGame,
+}
+
 fn main() {
+    let mut rsrc = Resources::new();
+    let startscreen_tex = rsrc.load_texture(Path::new("start.png"));
+
+
     let walls1: Vec<Wall> = vec![
         //top wall
         Wall {
@@ -350,8 +367,9 @@ fn main() {
             vx: 0,
             vy: 0,
         },
-        levels: vec![level3, level, level2],
+        levels: vec![level, level2, level3],
         current_level: 0,
+        mode: Mode::TitleScreen,
     };
     // How many frames have we simulated?
     let mut frame_count: usize = 0;
@@ -366,16 +384,32 @@ fn main() {
         if let Event::RedrawRequested(_) = event {
             let fb = pixels.get_frame();
             collision::clear(fb, CLEAR_COL);
-
-            //Draw the walls
-            for w in state.levels[state.current_level].gamemap.iter() {
-                collision::rect(fb, w.rect, WALL_COL);
+            
+            match state.mode{
+                Mode::TitleScreen => Screen::wrap(pixels.get_frame(), WIDTH, HEIGHT, DEPTH, Vec2i(0, 0)).bitblt(
+                    &startscreen_tex,
+                    Rect {
+                        x: 0,
+                        y: 0,
+                        w: 700,
+                        h: 550,
+                    },
+                    Vec2i(0, 0),
+                ),
+                Mode::GamePlay => {
+                    //Draw the walls
+                for w in state.levels[state.current_level].gamemap.iter() {
+                    collision::rect(fb, w.rect, WALL_COL);
+                }
+                //draw the exit
+                collision::rect(fb, state.levels[state.current_level].exit, NEXT_COL);
+                // Draw the player
+                collision::rect(fb, state.player.rect, PLAYER_COL);
+                //draw_game(&mut state, fb);
+                },
+                Mode::EndGame => {}
             }
-            //draw the exit
-            collision::rect(fb, state.levels[state.current_level].exit, NEXT_COL);
-            // Draw the player
-            collision::rect(fb, state.player.rect, PLAYER_COL);
-            //draw_game(&mut state, fb);
+            
 
             // Flip buffers
             if pixels.render().is_err() {
@@ -420,41 +454,51 @@ fn main() {
 
 fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
     let mut level_index: usize = state.current_level;
-    // Player control goes here
-    if input.key_held(VirtualKeyCode::Right) {
-        state.player.rect.x += 1;
+    match state.mode{
+        Mode::TitleScreen => {
+        if input.key_held(VirtualKeyCode::Return) {
+            state.mode = Mode::GamePlay
+        }   
     }
-    if input.key_held(VirtualKeyCode::Left) {
-        state.player.rect.x -= 1;
-    }
-    if input.key_held(VirtualKeyCode::Up) {
-        state.player.rect.y -= 1;
-    }
-    if input.key_held(VirtualKeyCode::Down) {
-        state.player.rect.y += 1;
-    }
-    // Update player position
+        Mode::GamePlay => {
+        // Player control goes here
+        if input.key_held(VirtualKeyCode::Right) {
+            state.player.rect.x += 1;
+        }
+        if input.key_held(VirtualKeyCode::Left) {
+            state.player.rect.x -= 1;
+        }
+        if input.key_held(VirtualKeyCode::Up) {
+            state.player.rect.y -= 1;
+        }
+        if input.key_held(VirtualKeyCode::Down) {
+            state.player.rect.y += 1;
+        }
+        // Update player position
 
-    // Detect collisions: Generate contacts
-    for w in state.levels[state.current_level].gamemap.iter() {
-        if collision::rect_touching(state.player.rect, w.rect){
-            level_index = 0;
+        // Detect collisions: Generate contacts
+        for w in state.levels[state.current_level].gamemap.iter() {
+            if collision::rect_touching(state.player.rect, w.rect){
+                level_index = 0;
+                state.current_level = level_index;
+                state.player.rect.x = 170;
+                state.player.rect.y = 500;
+                break;
+            }
+        }
+
+        if collision::rect_touching(state.player.rect, state.levels[state.current_level].exit){
+            //change level here
+            level_index += 1;
             state.current_level = level_index;
-            state.player.rect.x = 170;
-            state.player.rect.y = 500;
-            break;
+            state.player.rect.x = state.levels[state.current_level].position.0;
+            state.player.rect.y = state.levels[state.current_level].position.1;
+
         }
     }
 
-    if collision::rect_touching(state.player.rect, state.levels[state.current_level].exit){
-        //change level here
-        level_index += 1;
-        state.current_level = level_index;
-        state.player.rect.x = state.levels[state.current_level].position.0;
-        state.player.rect.y = state.levels[state.current_level].position.1;
-
+    Mode::EndGame => {} 
     }
-    
 
     // Handle collisions: Apply restitution impulses.
 
