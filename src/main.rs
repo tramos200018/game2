@@ -80,6 +80,7 @@ enum Mode {
 fn main() {
     let mut rsrc = Resources::new();
     let startscreen_tex = rsrc.load_texture(Path::new("start.png"));
+    let endscreen_tex = rsrc.load_texture(Path::new("end.jpg"));
 
 
     let walls1: Vec<Wall> = vec![
@@ -407,7 +408,18 @@ fn main() {
                 collision::rect(fb, state.player.rect, PLAYER_COL);
                 //draw_game(&mut state, fb);
                 },
-                Mode::EndGame => {}
+                Mode::EndGame => {
+                    Screen::wrap(pixels.get_frame(), WIDTH, HEIGHT, DEPTH, Vec2i(0, 0)).bitblt(
+                        &endscreen_tex,
+                        Rect {
+                            x: 0,
+                            y: 0,
+                            w: 700,
+                            h: 550,
+                        },
+                        Vec2i(0, 0),
+                    )
+                }
             }
             
 
@@ -479,6 +491,7 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
         // Detect collisions: Generate contacts
         for w in state.levels[state.current_level].gamemap.iter() {
             if collision::rect_touching(state.player.rect, w.rect){
+                state.mode = Mode::EndGame;
                 level_index = 0;
                 state.current_level = level_index;
                 state.player.rect.x = 170;
@@ -497,7 +510,11 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
         }
     }
 
-    Mode::EndGame => {} 
+    Mode::EndGame => {
+        if input.key_held(VirtualKeyCode::Return) {
+            state.mode = Mode::GamePlay
+        } 
+    } 
     }
 
     // Handle collisions: Apply restitution impulses.
