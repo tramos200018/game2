@@ -17,9 +17,7 @@ pub struct Animation {
 
 impl Animation {
     pub fn new(frames: Vec<Rect>) -> Self {
-        Self {
-            frames,
-        }
+        Self { frames }
     }
 
     //dynamic data can include position?

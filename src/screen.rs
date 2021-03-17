@@ -36,6 +36,7 @@ impl<'fb> Screen<'fb> {
             h: self.height as u16,
         }
     }
+    
     // Our old, slow friend draw_at, now with super scrolling powers!
     #[inline(always)]
     pub fn draw_at(&mut self, col: Rgba, Vec2i(x, y): Vec2i) {

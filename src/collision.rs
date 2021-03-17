@@ -20,7 +20,7 @@ type Color = [u8; DEPTH];
 const CLEAR_COL: Color = [32, 32, 64, 255];
 const WALL_COL: Color = [200, 200, 200, 255];
 const PLAYER_COL: Color = [255, 128, 128, 255];
-const NEXT_COL: Color = [255, 0 , 0, 255];
+const NEXT_COL: Color = [255, 0, 0, 255];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Rect {
@@ -29,9 +29,7 @@ pub struct Rect {
     pub w: u16,
     pub h: u16,
 }
-struct Level{
-    
-}
+struct Level {}
 
 pub struct Wall {
     pub rect: Rect,
@@ -190,9 +188,8 @@ fn main() {
         y: 100,
         w: 68,
         h: 175,
-        
     };
-    
+
     let walls = [
         //top wall
         Wall {
@@ -268,7 +265,7 @@ fn main() {
                 h: HEIGHT as u16,
             },
         },
-        //bottom wall 
+        //bottom wall
         Wall {
             rect: Rect {
                 x: 0,
@@ -304,7 +301,6 @@ fn main() {
                 h: 70,
             },
         },
-        
     ];
     let walls3 = [
         //bottom wall
@@ -428,7 +424,7 @@ fn main() {
     let mut since = Instant::now();
 
     //next level
-    
+
     event_loop.run(move |event, _, control_flow| {
         // Draw the current frame
         if let Event::RedrawRequested(_) = event {
@@ -443,7 +439,7 @@ fn main() {
             // Draw the next square
             rect(fb, nextSquare, NEXT_COL);
             //next level
-            if(rect_touching(mobiles[0].rect, nextSquare)){
+            if (rect_touching(mobiles[0].rect, nextSquare)) {
                 clear(fb, CLEAR_COL);
                 for w in walls2.iter() {
                     rect(fb, w.rect, WALL_COL);
@@ -451,14 +447,12 @@ fn main() {
                 // Draw the player
                 rect(fb, mobiles[0].rect, PLAYER_COL);
             }
-            
+
             // Flip buffers
             if pixels.render().is_err() {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
-            
-            
 
             // Rendering has used up some time.
             // The renderer "produces" time...
@@ -517,6 +511,4 @@ fn main() {
         // When did the last frame end?
         since = Instant::now();
     });
-
-    
 }
