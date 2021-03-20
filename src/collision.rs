@@ -72,6 +72,43 @@ pub fn rect_touching(r1: Rect, r2: Rect) -> bool {
         r1.y <= r2.y+r2.h as i32 &&
         r2.y <= r1.y+r1.h as i32
 }
+fn hline(fb: &mut [u8], x0: usize, x1: usize, y: usize, c: Color) {
+    assert!(y < HEIGHT);
+    assert!(x0 <= x1);
+    assert!(x1 < WIDTH);
+    for p in fb[(y * WIDTH * 4 + x0 * 4)..(y * WIDTH * 4 + x1 * 4)].chunks_exact_mut(4) {
+        p.copy_from_slice(&c);
+    }
+}
+
+fn line(fb: &mut [u8], (x0, y0): (usize, usize), (x1, y1): (usize, usize), col: Color) {
+    let mut x = x0 as i64;
+    let mut y = y0 as i64;
+    let x0 = x0 as i64;
+    let y0 = y0 as i64;
+    let x1 = x1 as i64;
+    let y1 = y1 as i64;
+    let dx = (x1 - x0).abs();
+    let sx: i64 = if x0 < x1 { 1 } else { -1 };
+    let dy = -(y1 - y0).abs();
+    let sy: i64 = if y0 < y1 { 1 } else { -1 };
+    let mut err = dx + dy;
+    while x != x1 || y != y1 {
+        fb[(y as usize * WIDTH * DEPTH + x as usize * DEPTH)
+            ..(y as usize * WIDTH * DEPTH + (x as usize + 1) * DEPTH)]
+            .copy_from_slice(&col);
+        let e2 = 2 * err;
+        if dy <= e2 {
+            err += dy;
+            x += sx;
+        }
+        if e2 <= dx {
+            err += dx;
+            y += sy;
+        }
+    }
+}
+
 #[allow(dead_code)]
 pub fn rect(fb: &mut [u8], r: Rect, c: Color) {
     assert!(r.x < WIDTH as i32);
@@ -84,6 +121,38 @@ pub fn rect(fb: &mut [u8], r: Rect, c: Color) {
             p.copy_from_slice(&c);
         }
     }
+}
+pub fn frameRect(fb: &mut [u8], r: Rect, c: Color) {
+    assert!(r.x < WIDTH as i32);
+    assert!(r.y < HEIGHT as i32);
+    // NOTE, very fragile! will break for out of bounds rects!  See next week for the fix.
+    let x1 = (r.x + r.w as i32).min(WIDTH as i32) as usize;
+    let y1 = (r.y + r.h as i32).min(HEIGHT as i32) as usize;
+    hline(
+        fb,
+        r.x as usize,
+        r.x as usize + r.w as usize,
+        r.y as usize,
+        c,
+    );
+    hline(
+        fb,
+        r.x as usize,
+        r.x as usize + r.w as usize,
+        r.y as usize + r.h as usize,
+        c,
+    );
+    line(fb,
+         (r.x as usize, r.y as usize), 
+         (r.x as usize, r.y as usize + r.h as usize), 
+         c,
+    );
+    line(fb,
+        (r.x as usize + r.w as usize, r.y as usize), 
+        (r.x as usize + r.w as usize, r.y as usize + r.h as usize), 
+        c,
+    );
+    
 }
 fn rect_displacement(r1: Rect, r2: Rect) -> Option<(i32, i32)> {
     // Draw this out on paper to double check, but these quantities
@@ -156,359 +225,5 @@ fn restitute(statics: &[Wall], dynamics: &mut [Mobile], contacts: &mut [Contact]
 }
 
 fn main() {
-    let event_loop = EventLoop::new();
-    let mut input = WinitInputHelper::new();
-    let window = {
-        let size = PhysicalSize::new(WIDTH as f64, HEIGHT as f64);
-        WindowBuilder::new()
-            .with_title("Collision2D")
-            .with_inner_size(size)
-            .with_min_inner_size(size)
-            .with_resizable(false)
-            .build(&event_loop)
-            .unwrap()
-    };
-    let mut pixels = {
-        let window_size = window.inner_size();
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH as u32, HEIGHT as u32, surface_texture).unwrap()
-    };
-    let player = Mobile {
-        rect: Rect {
-            x: 170,
-            y: 170,
-            w: 16,
-            h: 16,
-        },
-        vx: 0,
-        vy: 0,
-    };
-    let nextSquare = Rect {
-        x: WIDTH as i32 / 2 + 50,
-        y: 100,
-        w: 68,
-        h: 175,
-    };
-
-    let walls = [
-        //top wall
-        Wall {
-            rect: Rect {
-                x: 0,
-                y: 0,
-                w: WIDTH as u16,
-                h: 100,
-            },
-        },
-        //left wall
-        Wall {
-            rect: Rect {
-                x: 0,
-                y: 0,
-                w: 150,
-                h: HEIGHT as u16,
-            },
-        },
-        //right wall
-        Wall {
-            rect: Rect {
-                x: WIDTH as i32 / 3 * 2,
-                y: 0,
-                w: WIDTH as u16 / 3,
-                h: HEIGHT as u16,
-            },
-        },
-        //bottom wall
-        Wall {
-            rect: Rect {
-                x: 0,
-                y: HEIGHT as i32 - 16,
-                w: WIDTH as u16,
-                h: 16,
-            },
-        },
-        //square wall
-        Wall {
-            rect: Rect {
-                x: WIDTH as i32 / 2,
-                y: HEIGHT as i32 / 2,
-                w: 150,
-                h: 300,
-            },
-        },
-    ];
-    let walls2 = [
-        //top wall
-        Wall {
-            rect: Rect {
-                x: 0,
-                y: 0,
-                w: WIDTH as u16,
-                h: 0,
-            },
-        },
-        //left wall
-        Wall {
-            rect: Rect {
-                x: 0,
-                y: 0,
-                w: 90,
-                h: HEIGHT as u16,
-            },
-        },
-        //right wall
-        Wall {
-            rect: Rect {
-                x: WIDTH as i32 - 26,
-                y: 0,
-                w: 90,
-                h: HEIGHT as u16,
-            },
-        },
-        //bottom wall
-        Wall {
-            rect: Rect {
-                x: 0,
-                y: HEIGHT as i32 - 30,
-                w: WIDTH as u16,
-                h: 70,
-            },
-        },
-        //first quarter wall
-        Wall {
-            rect: Rect {
-                x: 220,
-                y: 90,
-                w: WIDTH as u16,
-                h: 70,
-            },
-        },
-        //second quarter wall
-        Wall {
-            rect: Rect {
-                x: 0,
-                y: 240,
-                w: WIDTH as u16 - 90,
-                h: 70,
-            },
-        },
-        //third quarter wall
-        Wall {
-            rect: Rect {
-                x: 220,
-                y: 390,
-                w: WIDTH as u16,
-                h: 70,
-            },
-        },
-    ];
-    let walls3 = [
-        //bottom wall
-        Wall {
-            rect: Rect {
-                x: 0,
-                y: HEIGHT as i32 - 50,
-                w: WIDTH as u16,
-                h: 50,
-            },
-        },
-        //right wall
-        Wall {
-            rect: Rect {
-                x: WIDTH as i32 - 150,
-                y: 0,
-                w: 150,
-                h: HEIGHT as u16,
-            },
-        },
-        //left wall
-        Wall {
-            rect: Rect {
-                x: 0,
-                y: 0,
-                w: 100,
-                h: HEIGHT as u16,
-            },
-        },
-        //top wall
-        Wall {
-            rect: Rect {
-                x: 0,
-                y: 0,
-                w: WIDTH as u16,
-                h: 50,
-            },
-        },
-        //w1
-        Wall {
-            rect: Rect {
-                x: 100,
-                y: HEIGHT as i32 - 150,
-                w: WIDTH as u16 / 3 + 150,
-                h: 50,
-            },
-        },
-        //w2
-        Wall {
-            rect: Rect {
-                x: 100 + 50,
-                y: HEIGHT as i32 - 350,
-                w: WIDTH as u16 / 3 + 200,
-                h: 150,
-            },
-        },
-        //w3
-        Wall {
-            rect: Rect {
-                x: 100,
-                y: 50,
-                w: WIDTH as u16 / 3,
-                h: 100,
-            },
-        },
-        //w4
-        Wall {
-            rect: Rect {
-                x: 100 + WIDTH as i32 / 3,
-                y: HEIGHT as i32 - 375,
-                w: WIDTH as u16 / 3 + 100,
-                h: 25,
-            },
-        },
-        //w5
-        Wall {
-            rect: Rect {
-                x: WIDTH as i32 / 3 * 2 - 50,
-                y: 50,
-                w: WIDTH as u16 / 3 + 50,
-                h: 150,
-            },
-        },
-        //w6
-        Wall {
-            rect: Rect {
-                x: 100 + WIDTH as i32 / 3,
-                y: 125,
-                w: 50,
-                h: 25,
-            },
-        },
-        //w7
-        Wall {
-            rect: Rect {
-                x: 130 + WIDTH as i32 / 3,
-                y: 93,
-                w: 60,
-                h: 3,
-            },
-        },
-        //w8
-        Wall {
-            rect: Rect {
-                x: 100 + WIDTH as i32 / 3,
-                y: 50,
-                w: 40,
-                h: 15,
-            },
-        },
-    ];
-    // How many frames have we simulated?
-    let mut frame_count: usize = 0;
-    // How many unsimulated frames have we saved up?
-    let mut available_time = 0.0;
-    // Track beginning of play
-    let start = Instant::now();
-    let mut contacts = vec![];
-    let mut mobiles = [player];
-    // Track end of the last frame
-    let mut since = Instant::now();
-
-    //next level
-
-    event_loop.run(move |event, _, control_flow| {
-        // Draw the current frame
-        if let Event::RedrawRequested(_) = event {
-            let fb = pixels.get_frame();
-            clear(fb, CLEAR_COL);
-            // Draw the walls
-            for w in walls.iter() {
-                rect(fb, w.rect, WALL_COL);
-            }
-            // Draw the player
-            rect(fb, mobiles[0].rect, PLAYER_COL);
-            // Draw the next square
-            rect(fb, nextSquare, NEXT_COL);
-            //next level
-            if (rect_touching(mobiles[0].rect, nextSquare)) {
-                clear(fb, CLEAR_COL);
-                for w in walls2.iter() {
-                    rect(fb, w.rect, WALL_COL);
-                }
-                // Draw the player
-                rect(fb, mobiles[0].rect, PLAYER_COL);
-            }
-
-            // Flip buffers
-            if pixels.render().is_err() {
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-
-            // Rendering has used up some time.
-            // The renderer "produces" time...
-            available_time += since.elapsed().as_secs_f64();
-        }
-        // Handle input events
-        if input.update(event) {
-            // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-            // Resize the window if needed
-            if let Some(size) = input.window_resized() {
-                pixels.resize(size.width, size.height);
-            }
-        }
-        // And the simulation "consumes" it
-        while available_time >= DT {
-            let player = &mut mobiles[0];
-            // Eat up one frame worth of time
-            available_time -= DT;
-
-            // Player control goes here; determine player acceleration
-            if input.key_pressed(VirtualKeyCode::Right) {
-                player.rect.x += 4;
-            }
-            if input.key_pressed(VirtualKeyCode::Left) {
-                player.rect.x -= 4;
-            }
-            if input.key_pressed(VirtualKeyCode::Up) {
-                player.rect.y -= 4;
-            }
-            if input.key_pressed(VirtualKeyCode::Down) {
-                player.rect.y += 4;
-            }
-
-            // Determine player velocity
-
-            // Update player position
-
-            // Detect collisions: Generate contacts
-            contacts.clear();
-            gather_contacts(&walls, &mobiles, &mut contacts);
-
-            // Handle collisions: Apply restitution impulses.
-            restitute(&walls, &mut mobiles, &mut contacts);
-
-            // Update game rules: What happens when the player touches things?
-
-            // Increment the frame counter
-            frame_count += 1;
-        }
-        // Request redraw
-        window.request_redraw();
-        // When did the last frame end?
-        since = Instant::now();
-    });
+    
 }
