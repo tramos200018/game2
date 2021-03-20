@@ -44,6 +44,8 @@ const CLEAR_COL: Color = [32, 32, 64, 255];
 const WALL_COL: Color = [200, 200, 200, 255];
 const PLAYER_COL: Color = [255, 128, 128, 255];
 const NEXT_COL: Color = [255, 0, 0, 255];
+const ARROW_COL: Color = [0, 255, 0, 255];
+
 
 struct Level {
     gamemap: Vec<Wall>,
@@ -156,7 +158,6 @@ fn main() {
                 h: 100,
             },
         },
-        
     ];
     let walls2: Vec<Wall> = vec![
         //top wall
@@ -451,6 +452,19 @@ fn main() {
                     collision::rect(fb, state.levels[state.current_level].exit, NEXT_COL);
                     // Draw the player
                     collision::frameRect(fb, state.player.rect, PLAYER_COL);
+                    if (state.current_level != 2) {
+                        // Draw the triangle
+                        collision::triangle(
+                            fb,
+                            (
+                                state.levels[state.current_level].exit.x as usize,
+                                state.levels[state.current_level].exit.y as usize,
+                            ),
+                            state.levels[state.current_level].exit.w as usize,
+                            state.levels[state.current_level].exit.h as usize,
+                            CLEAR_COL,
+                        );
+                    }
 
                     let mut screen = Screen::wrap(fb, WIDTH, HEIGHT, DEPTH, Vec2i(0, 0));
 
@@ -543,7 +557,6 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
             // Detect collisions: Generate contacts
             for w in state.levels[state.current_level].gamemap.iter() {
                 if collision::rect_touching(state.player.rect, w.rect) {
-                    
                     //level_index = 0;
                     state.current_level = level_index;
                     state.player.rect.x = state.levels[state.current_level].position.0;
@@ -562,10 +575,9 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
                 state.player.rect.y = state.levels[state.current_level].position.1;
                 state.sprites[0].position.0 = state.player.rect.x;
                 state.sprites[0].position.1 = state.player.rect.y;
-                if(level_index==3){
+                if (level_index == 3) {
                     state.mode = Mode::EndGame;
                 }
-                
             }
             state.sprites[0].update_anim();
         }

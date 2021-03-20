@@ -122,6 +122,11 @@ pub fn rect(fb: &mut [u8], r: Rect, c: Color) {
         }
     }
 }
+pub fn triangle(fb: &mut [u8], (x0, y0): (usize, usize), b: usize, h: usize, col: Color) {
+    line(fb, (x0, y0), (x0, y0 + h), col);
+    line(fb, (x0, y0 + h), (x0 + b, y0 + h / 2), col);
+    line(fb, (x0, y0), (x0 + b, y0 + h / 2), col);
+}
 pub fn frameRect(fb: &mut [u8], r: Rect, c: Color) {
     assert!(r.x < WIDTH as i32);
     assert!(r.y < HEIGHT as i32);
@@ -142,17 +147,18 @@ pub fn frameRect(fb: &mut [u8], r: Rect, c: Color) {
         r.y as usize + r.h as usize,
         c,
     );
-    line(fb,
-         (r.x as usize, r.y as usize), 
-         (r.x as usize, r.y as usize + r.h as usize), 
-         c,
-    );
-    line(fb,
-        (r.x as usize + r.w as usize, r.y as usize), 
-        (r.x as usize + r.w as usize, r.y as usize + r.h as usize), 
+    line(
+        fb,
+        (r.x as usize, r.y as usize),
+        (r.x as usize, r.y as usize + r.h as usize),
         c,
     );
-    
+    line(
+        fb,
+        (r.x as usize + r.w as usize, r.y as usize),
+        (r.x as usize + r.w as usize, r.y as usize + r.h as usize),
+        c,
+    );
 }
 fn rect_displacement(r1: Rect, r2: Rect) -> Option<(i32, i32)> {
     // Draw this out on paper to double check, but these quantities
@@ -224,6 +230,4 @@ fn restitute(statics: &[Wall], dynamics: &mut [Mobile], contacts: &mut [Contact]
     // Or, you might decide to calculate signed mtvs taking direction into account instead of the unsigned displacements from rect_displacement up above.  Or calculate one MTV per involved entity, then apply displacements to both objects during restitution (sorting by the max or the sum of their magnitudes)
 }
 
-fn main() {
-    
-}
+fn main() {}
