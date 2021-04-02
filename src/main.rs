@@ -337,10 +337,10 @@ fn main() {
 
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
-    let window = {
+    let mut window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
         WindowBuilder::new()
-            .with_title("Anim2D")
+            .with_title("Maze Game")
             .with_inner_size(size)
             .with_min_inner_size(size)
             .with_resizable(false)
@@ -552,6 +552,20 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
                 state.player.rect.y += 1;
                 state.sprites[0].position.1 += 1;
             }
+            /*
+            yes
+            // Update internal state and request a redraw
+            if let Some((x, y)) = input
+                // Get mouse position in physical pixels
+                .mouse()
+                // Convert physical to logical (i.e. framebuffer) pixel values
+                .and_then(|mp| pixels.window_pos_to_pixel(mp).ok())
+            {
+                line_x = (x as usize).min(WIDTH - 1);
+                line_y = (y as usize).min(HEIGHT - 1);
+            }
+            */
+            
             // Update player position
 
             // Detect collisions: Generate contacts
