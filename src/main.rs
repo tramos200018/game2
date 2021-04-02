@@ -1,6 +1,9 @@
 use crate::types::{Rect, Rgba, Vec2i};
 use pixels::{Pixels, SurfaceTexture};
 use std::rc::Rc;
+use rodio::{Source, Sink};
+use std::io::{Write, stdout, BufReader};
+use std::fs::File;
 use std::time::Instant;
 use std::{borrow::Borrow, os::macos::raw::stat, path::Path, task::RawWakerVTable};
 use winit::event::{Event, VirtualKeyCode};
@@ -53,6 +56,11 @@ struct Level {
     position: Vec2i,
 }
 
+/*
+struct Sound{
+    stream: (rodio::OutputStream, rodio::OutputStreamHandle),
+    source: rodio::Decoder<BufReader<File>>,
+}*/
 // Now this main module is just for the run-loop and rules processing.
 struct GameState {
     // What data do we need for this game?  Wall positions?
@@ -67,6 +75,7 @@ struct GameState {
     current_level: usize,
     mode: Mode,
 }
+
 // seconds per frame
 const DT: f64 = 1.0 / 60.0;
 
@@ -82,6 +91,20 @@ enum Mode {
 }
 
 fn main() {
+    //audio
+    //Background Music
+    //Stardust (Ziggy is coming) by Kraftamt (c) copyright 2020 Licensed under a Creative Commons Attribution Noncommercial  
+    //(3.0) license. http://dig.ccmixter.org/files/Karstenholymoly/62493 Ft: Platinum Butterfly
+    
+    let (stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
+    let file = File::open("levelOne.mp3").unwrap();
+    let gameover_file = File::open("gameover.wav").unwrap();
+    let source = rodio::Decoder::new(BufReader::new(file)).unwrap();
+    let gameover_source = rodio::Decoder::new(BufReader::new(gameover_file)).unwrap();
+    stream_handle.play_raw(source.convert_samples());
+    //stream_handle.play_raw(gameover_source.convert_samples());
+
+
     let mut rsrc = Resources::new();
     let startscreen_tex = rsrc.load_texture(Path::new("start.png"));
     let endscreen_tex = rsrc.load_texture(Path::new("end.jpg"));
@@ -415,6 +438,8 @@ fn main() {
         sprites: vec![Sprite::new(&tex, &anim, frame1, 0, Vec2i(170, 500))],
         textures: vec![tex],
     };
+    
+
     // How many frames have we simulated?
     let mut frame_count: usize = 0;
     // How many unsimulated frames have we saved up?
@@ -443,11 +468,12 @@ fn main() {
                         Vec2i(0, 0),
                     )
                 }
-                Mode::GamePlay => {
+                Mode::GamePlay => {  
                     //Draw the walls
                     for w in state.levels[state.current_level].gamemap.iter() {
                         collision::rect(fb, w.rect, WALL_COL);
                     }
+
                     //draw the exit
                     collision::rect(fb, state.levels[state.current_level].exit, NEXT_COL);
                     // Draw the player
@@ -485,7 +511,7 @@ fn main() {
                     )
                 }
             }
-
+            
             // Flip buffers
             if pixels.render().is_err() {
                 *control_flow = ControlFlow::Exit;
@@ -525,9 +551,10 @@ fn main() {
         since = Instant::now();
     });
 }
-
 fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
     let mut level_index: usize = state.current_level;
+
+
     match state.mode {
         Mode::TitleScreen => {
             if input.key_held(VirtualKeyCode::Return) {
@@ -553,7 +580,7 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
                 state.sprites[0].position.1 += 1;
             }
             /*
-            yes
+            yes,
             // Update internal state and request a redraw
             if let Some((x, y)) = input
                 // Get mouse position in physical pixels
@@ -571,16 +598,15 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
             // Detect collisions: Generate contacts
             for w in state.levels[state.current_level].gamemap.iter() {
                 if collision::rect_touching(state.player.rect, w.rect) {
-                    //level_index = 0;
                     state.current_level = level_index;
                     state.player.rect.x = state.levels[state.current_level].position.0;
                     state.player.rect.y = state.levels[state.current_level].position.1;
                     state.sprites[0].position.0 = state.player.rect.x;
                     state.sprites[0].position.1 = state.player.rect.y;
-                    break;
+
                 }
             }
-
+ 
             if collision::rect_touching(state.player.rect, state.levels[state.current_level].exit) {
                 //change level here
                 level_index += 1;
@@ -603,8 +629,4 @@ fn update_game(state: &mut GameState, input: &WinitInputHelper, frame: usize) {
             }
         }
     }
-
-    // Handle collisions: Apply restitution impulses.
-
-    // Update game rules: What happens when the player touches things?
 }
